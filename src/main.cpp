@@ -6,8 +6,8 @@
 Memory memory;
 
 int main() {
-    freopen("testcases/bulgarian.data", "r", stdin);
-    freopen("test.out", "w", stdout);
+    // freopen("testcases/bulgarian.data", "r", stdin);
+    // freopen("test.out", "w", stdout);
     int cnt = 0;
     memory.Read();
     memory.ResetPC();
