@@ -1,14 +1,12 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 #include "operation.h"
-class Memory {
-   private:
+struct Memory {
     int reg[32] = {0};
     unsigned char mem[500000];
     unsigned tmp[3];
     int now_pc;
 
-   public:
     int Return();
     void ResetRes() { reg[0] = 0; }
     void Read();
