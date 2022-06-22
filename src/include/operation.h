@@ -42,7 +42,7 @@ struct Operation {
         AND
     };
     Oper op;
-    int rs1=0, rs2=0, rd=0;
+    int rs1=-1, rs2=-1, rd=-1;
     int shamt=0;
     int imm=0;
 };

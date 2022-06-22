@@ -6,7 +6,7 @@
 Memory memory;
 
 int main() {
-    // freopen("testcases/bulgarian.data", "r", stdin);
+    // freopen("testcases/tak.data", "r", stdin);
     // freopen("test.out", "w", stdout);
     int cnt = 0;
     memory.Read();
