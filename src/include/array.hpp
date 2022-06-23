@@ -19,7 +19,7 @@ struct Array {
 
     bool Full() { return size == length; }
 
-    std::pair<bool, int> Push(T newnode) {
+    std::pair<bool, int> Push(const T &newnode) {
         if (Full()) return std::make_pair(false, 0);
 
         for (int i = 0; i < length; i++)
@@ -31,6 +31,22 @@ struct Array {
             }
     }
 
+    void Push(int index, const T &newnode) {
+        busy[index] = 1;
+        node[index] = newnode;
+        size++;
+        return;
+    }
+
+    int GetIndex() {
+        for (int i = 0; i < length; i++)
+            if (!busy[i]) {
+                return i;
+            }
+    }
+
+    int Length() { return length; }
+
     bool Pop(int pos) {
         if (Empty()) return false;
 
@@ -38,6 +54,10 @@ struct Array {
         size--;
         return true;
     }
+
+    void ModifyBusy(int pos, bool ifbusy) { busy[pos] = ifbusy; }
+
+    T &operator[](int pos) { return node[pos]; }
 };
 
 #endif

@@ -2,7 +2,7 @@
 #define QUEUE_HPP
 #include <utility>
 template <class T, int length = 10>
-class Queue {
+struct Queue {
     int front = 0, rear = 0;
     T node[length + 1];
     bool busy[length + 1];
@@ -30,6 +30,8 @@ class Queue {
         busy[rear] = 1;
         return std::make_pair(true, rear);
     }
+
+    int GetIndex() { return (rear + 1) >= (length + 1) ? 0 : rear + 1; }
 
     bool Pop() {
         if (Empty()) return false;
@@ -63,6 +65,10 @@ class Queue {
         else
             return std::make_pair(true, node[GetNext(GetNext(front))]);
     }
+
+    T& operator[](int pos) { return node[pos]; }
+
+    void ModifyBusy(int pos, bool ifbusy) { busy[pos] = ifbusy; }
 
     int NextPos() { return GetNext(rear); }
 };
