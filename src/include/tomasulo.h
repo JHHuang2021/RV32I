@@ -1,42 +1,58 @@
 #ifndef TOMASULO_H
 #define TOMASULO_H
-#include <list>
-
+#include "alu.h"
 #include "array.hpp"
 #include "memory.h"
 #include "operation.h"
 #include "queue.hpp"
-
-struct ReorderBufferItem {
-    Operation::Oper op;
-    int dest;
-    int value;
-    int addr;
-    int r;
-    bool ready;
-};
-struct Reservation {
-    Operation::Oper op;
-    int vj, vk, qj, qk;
-    int dest;
-    int imm;
-    int shamt;
-    int step=1;//for load
-};
-struct RegisterStatus {
-    int reorder;
-    bool busy;
-};
 class Tomasulo {
    private:
-    Queue<ReorderBufferItem, 20> rob;
-    Array<Reservation, 20> rs;
-    RegisterStatus reg_status[32];
+    struct RobItem {
+        Operation::Oper op;
+        int dest;  // reg
+        int addr;  // mem
+        int pc;
+        int value;
+        bool ready = false;
+        int offset;
+        unsigned code = 0;
+        void Clear() {
+            op = Operation::LUI;
+            dest = value = addr = pc = -1;
+            offset = 0;
+            ready = false;
+        }
+    };
+    struct RSLItem {
+        Operation::Oper op;
+        int vj, vk, qj, qk;
+        int dest;
+        int imm;
+        int shamt;
+        int cur_pc;  // for JAL and JALR
+        void Clear() {
+            vj = vk = qj = qk = -1;
+            dest = imm = shamt = -1;
+            cur_pc = 0;
+        }
+    };
+    struct RegStatus {
+        int reorder;
+        bool busy = false;
+    };
     Memory memory;
-    void Issue(const Operation &op);
-    std::pair<bool, int> Execute(int r);
-    void WriteResult(int r,int result);
+    Alu alu;
+    Queue<RobItem> rob;
+    Queue<RSLItem> ls;
+    Array<RSLItem> rs;
+    RegStatus reg_stat[32];
+    int inreg[32], outreg[32];
+    bool Issue();
+    void Execute();
+    bool SLBuffer();
     void Commit();
+    void Update();
+    void ResetRes() { outreg[0] = 0; }
 
    public:
     void Run();

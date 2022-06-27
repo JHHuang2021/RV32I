@@ -1,8 +1,7 @@
-#include <bits/stdc++.h>
+#include <iostream>
 
 #include "include/tomasulo.h"
 Tomasulo CPU;
-
 int main() {
     freopen("testcases/tak.data", "r", stdin);
     freopen("test.out", "w", stdout);

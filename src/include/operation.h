@@ -2,8 +2,8 @@
 #define OPERATION
 struct Operation {
     enum ImmType { R, I, S, B, U, J };
-    enum Oper {
-        LUI,
+    enum Oper {//11-18
+        LUI=1,
         AUIPC,
         JAL,
         JALR,

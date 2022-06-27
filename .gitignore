@@ -7,3 +7,5 @@ code
 Makefile
 .cache
 testcases
+backup
+test.out

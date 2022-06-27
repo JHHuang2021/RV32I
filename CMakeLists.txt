@@ -6,10 +6,14 @@ add_compile_options(-std=c++2a -g )
 
 
 set(src_dir
+#   src/parser.cpp
+#   src/memory.cpp
+#   src/tomasulo.cpp
   src/parser.cpp
+  src/alu.cpp
   src/memory.cpp
+  src/tomasulo.cpp
   src/main.cpp
-# std.cpp
 )
 
 add_executable(code ${src_dir})
