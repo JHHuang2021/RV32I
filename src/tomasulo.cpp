@@ -320,16 +320,17 @@ void Tomasulo::Run() {
     while (true) {
         static int cnt = 0;
         cnt++;
-        Issue();
-        ResetRes();
-
-        Reservation();
-        ResetRes();
 
         Execute();
         ResetRes();
 
+        Issue();
+        ResetRes();
+
         SLBuffer();
+        ResetRes();
+
+        Reservation();
         ResetRes();
 
         Commit();
