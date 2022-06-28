@@ -224,6 +224,7 @@ void Tomasulo::Commit() {
                 rob.Clear();
                 rs.Clear();
                 ls.Clear();
+                now.Clear();
                 memset(reg_stat, 0, sizeof(reg_stat));
                 memory.pc = it.addr + it.offset - 4;
             }
@@ -232,6 +233,7 @@ void Tomasulo::Commit() {
             rob.Clear();
             rs.Clear();
             ls.Clear();
+            now.Clear();
             memset(reg_stat, 0, sizeof(reg_stat));
             if (it.op == 3)
                 memory.pc = it.addr + it.offset - 4;

@@ -56,6 +56,12 @@ class Tomasulo {
         int ls;
 
         bool ls_if_update = false;
+
+        void Clear() {
+            ex_size = nxt_ex_size = 0;
+            memset(ex, 0, sizeof(ex));
+            memset(nxt_ex, 0, sizeof(nxt_ex));
+        }
     };
     Memory memory;
     Alu alu;

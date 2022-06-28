@@ -28,6 +28,7 @@ struct Array {
     }
     int Length() { return len; }
     void Erase(int pos) {
+        // if (!busy[pos]) return;
         busy[pos] = 0;
         size--;
     }
