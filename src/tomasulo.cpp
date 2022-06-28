@@ -307,13 +307,13 @@ void Tomasulo::Reservation() {
 }
 
 void Tomasulo::Run() {
-    int cnt = 0;
     memory.Read();
     ls.Clear();
     rs.Clear();
     rob.Clear();
     memset(reg_stat, 0, sizeof(reg_stat));
     while (true) {
+        static int cnt = 0;
         cnt++;
         Issue();
         ResetRes();
