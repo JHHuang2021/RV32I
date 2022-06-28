@@ -128,7 +128,7 @@ void Tomasulo::Execute() {
             default:
                 rob[b].value = alu.Work(it.op, it.vj, it.vk, it.imm, it.shamt);
         }
-        rs.Erase(now.ex[i]);
+        // rs.Erase(now.ex[i]);
 
         // update
         // for (int i = 0; i < rs.Length(); i++) {
@@ -252,6 +252,7 @@ void Tomasulo::Update() {
 
     for (int j = 0; j < now.ex_size; j++) {
         int b = rs[now.ex[j]].dest;
+        rs.Erase(now.ex[j]);
         for (int i = 0; i < rs.Length(); i++) {
             if (rs[i].qj == b) {
                 rs[i].vj = rob[b].value;
