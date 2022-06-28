@@ -104,54 +104,34 @@ bool Tomasulo::Issue() {
 }
 
 void Tomasulo::Execute() {
-    int r;
-    for (r = 0; r < rs.Length(); r++)
-        if (rs.busy[r] && rs[r].qj == -1 && rs[r].qk == -1) break;
-    if (r == rs.Length()) return;
-    RSLItem &it = rs[r];
-    int b = it.dest;
-    int ret;
+    if (exr == rs.Length()) return;
+    RSLItem &it = rs[exr];
+    exb = it.dest;
     switch (it.op) {
         case Operation::JAL:
-            ret = it.cur_pc;
+            rob[exb].value = it.cur_pc;
             break;
         case Operation::JALR:
-            ret = it.cur_pc;
-            rob[b].pc = (it.vj + it.imm) & ~1;
+            rob[exb].value = it.cur_pc;
+            rob[exb].pc = (it.vj + it.imm) & ~1;
             break;
         case Operation::LUI:
-            ret = it.imm;
+            rob[exb].value = it.imm;
             break;
         case Operation::AUIPC:
-            ret = it.imm + it.cur_pc - 4;
+            rob[exb].value = it.imm + it.cur_pc - 4;
         default:
-            ret = alu.Work(it.op, it.vj, it.vk, it.imm, it.shamt);
+            rob[exb].value = alu.Work(it.op, it.vj, it.vk, it.imm, it.shamt);
     }
-    rs.Erase(r);
+    rs.Erase(exr);
+    rob[exb].ready = true;
+}
 
-    // update
-    for (int i = 0; i < rs.Length(); i++) {
-        if (rs[i].qj == b) {
-            rs[i].vj = ret;
-            rs[i].qj = -1;
-        }
-        if (rs[i].qk == b) {
-            rs[i].vk = ret;
-            rs[i].qk = -1;
-        }
-    }
-    for (int i = 0; i < ls.Length(); i++) {
-        if (ls[i].qj == b) {
-            ls[i].vj = ret;
-            ls[i].qj = -1;
-        }
-        if (ls[i].qk == b) {
-            ls[i].vk = ret;
-            ls[i].qk = -1;
-        }
-    }
-    rob[b].value = ret;
-    rob[b].ready = true;
+void Tomasulo::Reservation() {
+    int r = rs.Length();
+    for (r = 0; r < rs.Length(); r++)
+        if (rs.busy[r] && rs[r].qj == -1 && rs[r].qk == -1) break;
+    exr = r;
 }
 
 bool Tomasulo::SLBuffer() {
@@ -160,6 +140,7 @@ bool Tomasulo::SLBuffer() {
     if (it.qj != -1 || it.qk != -1) return false;
     if (it.cnt != 3) {
         it.cnt++;
+        exs = 0;
         return false;
     }
     if (it.op >= 11 && it.op <= 15) {
@@ -169,29 +150,12 @@ bool Tomasulo::SLBuffer() {
         rob[b].value = memory.Load(it.op, rob[b].addr);
         rob[b].ready = true;
         ls.Pop();
-        for (int i = 0; i < rs.Length(); i++) {
-            if (rs[i].qj == b) {
-                rs[i].vj = rob[b].value;
-                rs[i].qj = -1;
-            }
-            if (rs[i].qk == b) {
-                rs[i].vk = rob[b].value;
-                rs[i].qk = -1;
-            }
-        }
-        for (int i = 0; i < ls.Length(); i++) {
-            if (ls[i].qj == b) {
-                ls[i].vj = rob[b].value;
-                ls[i].qj = -1;
-            }
-            if (ls[i].qk == b) {
-                ls[i].vk = rob[b].value;
-                ls[i].qk = -1;
-            }
-        }
+        exs = 1;
+        exbs = b;
         return true;
     } else {
         // store
+        exs = 0;
         if (rob.GetFrontInd() == it.dest) {
             int b = it.dest;
             rob[b].addr = it.vj + it.imm;
@@ -242,6 +206,51 @@ void Tomasulo::Commit() {
 
 void Tomasulo::Update() {
     for (int i = 0; i < 32; i++) inreg[i] = outreg[i];
+    if (exr != rs.Length()) {
+        // update
+        for (int i = 0; i < rs.Length(); i++) {
+            if (rs[i].qj == exb) {
+                rs[i].vj = rob[exb].value;
+                rs[i].qj = -1;
+            }
+            if (rs[i].qk == exb) {
+                rs[i].vk = rob[exb].value;
+                rs[i].qk = -1;
+            }
+        }
+        for (int i = 0; i < ls.Length(); i++) {
+            if (ls[i].qj == exb) {
+                ls[i].vj = rob[exb].value;
+                ls[i].qj = -1;
+            }
+            if (ls[i].qk == exb) {
+                ls[i].vk = rob[exb].value;
+                ls[i].qk = -1;
+            }
+        }
+    }
+    if (exs) {
+        for (int i = 0; i < rs.Length(); i++) {
+            if (rs[i].qj == exbs) {
+                rs[i].vj = rob[exbs].value;
+                rs[i].qj = -1;
+            }
+            if (rs[i].qk == exbs) {
+                rs[i].vk = rob[exbs].value;
+                rs[i].qk = -1;
+            }
+        }
+        for (int i = 0; i < ls.Length(); i++) {
+            if (ls[i].qj == exbs) {
+                ls[i].vj = rob[exbs].value;
+                ls[i].qj = -1;
+            }
+            if (ls[i].qk == exbs) {
+                ls[i].vk = rob[exbs].value;
+                ls[i].qk = -1;
+            }
+        }
+    }
 }
 
 void Tomasulo::Run() {
@@ -250,6 +259,9 @@ void Tomasulo::Run() {
     while (true) {
         cnt++;
         Issue();
+        ResetRes();
+
+        Reservation();
         ResetRes();
 
         Execute();
