@@ -315,11 +315,13 @@ void Tomasulo::Run() {
     memset(reg_stat, 0, sizeof(reg_stat));
     while (true) {
         cnt++;
-
-        Execute();
+        Issue();
         ResetRes();
 
         Reservation();
+        ResetRes();
+
+        Execute();
         ResetRes();
 
         SLBuffer();
@@ -329,9 +331,6 @@ void Tomasulo::Run() {
         ResetRes();
 
         Update();
-        ResetRes();
-
-        Issue();
         ResetRes();
     }
 }
