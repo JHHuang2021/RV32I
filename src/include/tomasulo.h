@@ -35,11 +35,13 @@ class Tomasulo {
         int shamt;
         int cur_pc;  // for JAL and JALR
         int cnt;     // for Load and Store
+        int status = 0;
+        // 0 idle 1 pending 2 finished
         void Clear() {
             vj = vk = qj = qk = -1;
             dest = imm = shamt = -1;
             cnt = 1;
-            cur_pc = 0;
+            status = cur_pc = 0;
         }
     };
     struct RegStatus {
@@ -52,6 +54,7 @@ class Tomasulo {
         int nxt_ex_size = 0;
         int nxt_ex[ALU];
         int ls;
+
         bool ls_if_update = false;
     };
     Memory memory;

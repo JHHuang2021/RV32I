@@ -302,8 +302,11 @@ void Tomasulo::Update() {
 void Tomasulo::Reservation() {
     now.nxt_ex_size = 0;
     for (int r = 0; r < rs.Length() && now.nxt_ex_size < ALU; r++)
-        if (rs.busy[r] && rs[r].qj == -1 && rs[r].qk == -1)
+        if (rs.busy[r] && rs[r].status != 1 && rs[r].qj == -1 &&
+            rs[r].qk == -1) {
             now.nxt_ex[now.nxt_ex_size++] = r;
+            rs[r].status = 1;
+        }
 }
 
 void Tomasulo::Run() {
