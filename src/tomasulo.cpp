@@ -104,55 +104,55 @@ bool Tomasulo::Issue() {
 }
 
 void Tomasulo::Execute() {
-    int r;
-    for (r = 0; r < rs.Length(); r++)
-        if (rs.busy[r] && rs[r].qj == -1 && rs[r].qk == -1) break;
-    if (r == rs.Length()) return;
-    RSLItem &it = rs[r];
-    int b = it.dest;
-    int ret;
-    switch (it.op) {
-        case Operation::JAL:
-            ret = it.cur_pc;
-            break;
-        case Operation::JALR:
-            ret = it.cur_pc;
-            rob[b].pc = (it.vj + it.imm) & ~1;
-            break;
-        case Operation::LUI:
-            ret = it.imm;
-            break;
-        case Operation::AUIPC:
-            ret = it.imm + it.cur_pc - 4;
-            break;
-        default:
-            ret = alu.Work(it.op, it.vj, it.vk, it.imm, it.shamt);
-    }
-    rs.Erase(r);
+    // int r;
+    // for (r = 0; r < rs.Length(); r++)
+    //     if (rs.busy[r] && rs[r].qj == -1 && rs[r].qk == -1) break;
+    // if (r == rs.Length()) return;
+    for (int i = 0; i < now.ex_size; i++) {
+        RSLItem &it = rs[now.ex[i]];
+        int b = it.dest;
+        switch (it.op) {
+            case Operation::JAL:
+                rob[b].value = it.cur_pc;
+                break;
+            case Operation::JALR:
+                rob[b].value = it.cur_pc;
+                rob[b].pc = (it.vj + it.imm) & ~1;
+                break;
+            case Operation::LUI:
+                rob[b].value = it.imm;
+                break;
+            case Operation::AUIPC:
+                rob[b].value = it.imm + it.cur_pc - 4;
+                break;
+            default:
+                rob[b].value = alu.Work(it.op, it.vj, it.vk, it.imm, it.shamt);
+        }
+        rs.Erase(now.ex[i]);
 
-    // update
-    for (int i = 0; i < rs.Length(); i++) {
-        if (rs[i].qj == b) {
-            rs[i].vj = ret;
-            rs[i].qj = -1;
-        }
-        if (rs[i].qk == b) {
-            rs[i].vk = ret;
-            rs[i].qk = -1;
-        }
+        // update
+        // for (int i = 0; i < rs.Length(); i++) {
+        //     if (rs[i].qj == b) {
+        //         rs[i].vj = ret;
+        //         rs[i].qj = -1;
+        //     }
+        //     if (rs[i].qk == b) {
+        //         rs[i].vk = ret;
+        //         rs[i].qk = -1;
+        //     }
+        // }
+        // for (int i = 0; i < ls.Length(); i++) {
+        //     if (ls[i].qj == b) {
+        //         ls[i].vj = ret;
+        //         ls[i].qj = -1;
+        //     }
+        //     if (ls[i].qk == b) {
+        //         ls[i].vk = ret;
+        //         ls[i].qk = -1;
+        //     }
+        // }
+        rob[b].ready = true;
     }
-    for (int i = 0; i < ls.Length(); i++) {
-        if (ls[i].qj == b) {
-            ls[i].vj = ret;
-            ls[i].qj = -1;
-        }
-        if (ls[i].qk == b) {
-            ls[i].vk = ret;
-            ls[i].qk = -1;
-        }
-    }
-    rob[b].value = ret;
-    rob[b].ready = true;
 }
 
 bool Tomasulo::SLBuffer() {
@@ -170,26 +170,28 @@ bool Tomasulo::SLBuffer() {
         rob[b].value = memory.Load(it.op, rob[b].addr);
         rob[b].ready = true;
         ls.Pop();
-        for (int i = 0; i < rs.Length(); i++) {
-            if (rs[i].qj == b) {
-                rs[i].vj = rob[b].value;
-                rs[i].qj = -1;
-            }
-            if (rs[i].qk == b) {
-                rs[i].vk = rob[b].value;
-                rs[i].qk = -1;
-            }
-        }
-        for (int i = 0; i < ls.Length(); i++) {
-            if (ls[i].qj == b) {
-                ls[i].vj = rob[b].value;
-                ls[i].qj = -1;
-            }
-            if (ls[i].qk == b) {
-                ls[i].vk = rob[b].value;
-                ls[i].qk = -1;
-            }
-        }
+        now.ls = b;
+        now.ls_if_update = true;
+        // for (int i = 0; i < rs.Length(); i++) {
+        //     if (rs[i].qj == b) {
+        //         rs[i].vj = rob[b].value;
+        //         rs[i].qj = -1;
+        //     }
+        //     if (rs[i].qk == b) {
+        //         rs[i].vk = rob[b].value;
+        //         rs[i].qk = -1;
+        //     }
+        // }
+        // for (int i = 0; i < ls.Length(); i++) {
+        //     if (ls[i].qj == b) {
+        //         ls[i].vj = rob[b].value;
+        //         ls[i].qj = -1;
+        //     }
+        //     if (ls[i].qk == b) {
+        //         ls[i].vk = rob[b].value;
+        //         ls[i].qk = -1;
+        //     }
+        // }
         return true;
     } else {
         // store
@@ -245,6 +247,63 @@ void Tomasulo::Commit() {
 
 void Tomasulo::Update() {
     for (int i = 0; i < 32; i++) inreg[i] = outreg[i];
+
+    for (int j = 0; j < now.ex_size; j++) {
+        int b = rs[now.ex[j]].dest;
+        for (int i = 0; i < rs.Length(); i++) {
+            if (rs[i].qj == b) {
+                rs[i].vj = rob[b].value;
+                rs[i].qj = -1;
+            }
+            if (rs[i].qk == b) {
+                rs[i].vk = rob[b].value;
+                rs[i].qk = -1;
+            }
+        }
+        for (int i = 0; i <= ls.Length(); i++) {
+            if (ls[i].qj == b) {
+                ls[i].vj = rob[b].value;
+                ls[i].qj = -1;
+            }
+            if (ls[i].qk == b) {
+                ls[i].vk = rob[b].value;
+                ls[i].qk = -1;
+            }
+        }
+    }
+    if (now.ls_if_update) {
+        int b = now.ls;
+        for (int i = 0; i < rs.Length(); i++) {
+            if (rs[i].qj == b) {
+                rs[i].vj = rob[b].value;
+                rs[i].qj = -1;
+            }
+            if (rs[i].qk == b) {
+                rs[i].vk = rob[b].value;
+                rs[i].qk = -1;
+            }
+        }
+        for (int i = 0; i <= ls.Length(); i++) {
+            if (ls[i].qj == b) {
+                ls[i].vj = rob[b].value;
+                ls[i].qj = -1;
+            }
+            if (ls[i].qk == b) {
+                ls[i].vk = rob[b].value;
+                ls[i].qk = -1;
+            }
+        }
+    }
+    now.ls_if_update = false;
+    for (int i = 0; i < now.nxt_ex_size; i++) now.ex[i] = now.nxt_ex[i];
+    now.ex_size = now.nxt_ex_size;
+}
+
+void Tomasulo::Reservation() {
+    now.nxt_ex_size = 0;
+    for (int r = 0; r < rs.Length() && now.nxt_ex_size < ALU; r++)
+        if (rs.busy[r] && rs[r].qj == -1 && rs[r].qk == -1)
+            now.nxt_ex[now.nxt_ex_size++] = r;
 }
 
 void Tomasulo::Run() {
@@ -256,10 +315,11 @@ void Tomasulo::Run() {
     memset(reg_stat, 0, sizeof(reg_stat));
     while (true) {
         cnt++;
-        Issue();
-        ResetRes();
 
         Execute();
+        ResetRes();
+
+        Reservation();
         ResetRes();
 
         SLBuffer();
@@ -269,6 +329,9 @@ void Tomasulo::Run() {
         ResetRes();
 
         Update();
+        ResetRes();
+
+        Issue();
         ResetRes();
     }
 }
