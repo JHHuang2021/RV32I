@@ -158,6 +158,10 @@ bool Tomasulo::SLBuffer() {
     if (ls.Empty()) return false;
     RSLItem &it = ls.GetFront();
     if (it.qj != -1 || it.qk != -1) return false;
+    if (it.cnt != 3) {
+        it.cnt++;
+        return false;
+    }
     if (it.op >= 11 && it.op <= 15) {
         // load
         int b = it.dest;
@@ -165,6 +169,26 @@ bool Tomasulo::SLBuffer() {
         rob[b].value = memory.Load(it.op, rob[b].addr);
         rob[b].ready = true;
         ls.Pop();
+        for (int i = 0; i < rs.Length(); i++) {
+            if (rs[i].qj == b) {
+                rs[i].vj = rob[b].value;
+                rs[i].qj = -1;
+            }
+            if (rs[i].qk == b) {
+                rs[i].vk = rob[b].value;
+                rs[i].qk = -1;
+            }
+        }
+        for (int i = 0; i < ls.Length(); i++) {
+            if (ls[i].qj == b) {
+                ls[i].vj = rob[b].value;
+                ls[i].qj = -1;
+            }
+            if (ls[i].qk == b) {
+                ls[i].vk = rob[b].value;
+                ls[i].qk = -1;
+            }
+        }
         return true;
     } else {
         // store

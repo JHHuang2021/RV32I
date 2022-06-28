@@ -30,9 +30,11 @@ class Tomasulo {
         int imm;
         int shamt;
         int cur_pc;  // for JAL and JALR
+        int cnt; // for Load and Store
         void Clear() {
             vj = vk = qj = qk = -1;
             dest = imm = shamt = -1;
+            cnt=1;
             cur_pc = 0;
         }
     };
