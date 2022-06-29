@@ -4,7 +4,7 @@ const int CACHE = 4096;
 class Cache {
    private:
     struct CacheItem {
-        int key;  // address on mem
+        int key = -1;  // address on mem
         unsigned char value;
         bool dirty = false;
     };
