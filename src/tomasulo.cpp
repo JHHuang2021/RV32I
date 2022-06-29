@@ -227,7 +227,7 @@ void Tomasulo::Commit() {
     RobItem &it = rob.GetFront();
     int h = rob.GetFrontInd();
     if (it.code == 0x0ff00513) {
-        std::cout << (double)succ / prediction * 100 << "%" << std::endl;
+        // std::cout << (double)succ / prediction * 100 << "%" << std::endl;
         std::cout << static_cast<unsigned>(outreg[10] & 255u) << std::endl;
         exit(0);
     }
