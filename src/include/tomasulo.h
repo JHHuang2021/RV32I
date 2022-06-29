@@ -19,6 +19,7 @@ class Tomasulo {
         int value;
         bool ready = false;
         int offset;
+        int prediction=0;//0 false 1 true
         unsigned code = 0;
         void Clear() {
             op = Operation::LUI;
@@ -70,6 +71,7 @@ class Tomasulo {
     Array<RSLItem> rs;
     RegStatus reg_stat[32];
     Status now;
+    int bits_stat = 0b00;
     int inreg[32], outreg[32];
     bool Issue();
     void Execute();

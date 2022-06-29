@@ -6,6 +6,7 @@
 bool Tomasulo::Issue() {
     unsigned code = memory.GetInstr();
     auto instr = Parse(code);
+
     if (rob.Full()) {
         memory.pc -= 4;
         return false;
@@ -100,6 +101,15 @@ bool Tomasulo::Issue() {
         reg_stat[instr.rd].reorder = b;
         reg_stat[instr.rd].busy = true;
     }
+    if (instr.op >= 5 && instr.op <= 10) {
+        if (bits_stat >= 2) {
+            memory.pc += rob[b].offset - 4;
+            rob[b].prediction = 1;
+        } else {
+            rob[b].prediction = 0;
+        }
+    }
+
     return true;
 }
 
@@ -220,13 +230,21 @@ void Tomasulo::Commit() {
         int d = it.dest;
         if (it.op >= 5 && it.op <= 10) {
             // branch
-            if (it.value) {
+            if (it.value ^ it.prediction) {
                 rob.Clear();
                 rs.Clear();
                 ls.Clear();
                 now.Clear();
                 memset(reg_stat, 0, sizeof(reg_stat));
-                memory.pc = it.addr + it.offset - 4;
+                if (it.value)
+                    memory.pc = it.addr + it.offset - 4;
+                else
+                    memory.pc = it.addr;
+
+                if (it.prediction && bits_stat > 0)
+                    bits_stat--;
+                else if (!it.prediction && bits_stat < 3)
+                    bits_stat++;
             }
         } else if (it.op >= 3 && it.op <= 4) {
             outreg[it.dest] = it.value;
