@@ -8,6 +8,7 @@
 #include "operation.h"
 #include "queue.hpp"
 const int ALU = 4;
+const int COUNTER = 100;
 
 class Tomasulo {
    private:
@@ -19,7 +20,8 @@ class Tomasulo {
         int value;
         bool ready = false;
         int offset;
-        int prediction=0;//0 false 1 true
+        int prediction = 0;  // 0 false 1 true
+        int counter = 0;
         unsigned code = 0;
         void Clear() {
             op = Operation::LUI;
@@ -64,14 +66,22 @@ class Tomasulo {
             memset(nxt_ex, 0, sizeof(nxt_ex));
         }
     };
+    struct Counter {
+        int b;
+        int his;
+        int counter[4];
+        Counter() {
+            // for (int i = 0; i <= 3; i++) counter[i] = 3;
+        }
+    };
     Memory memory;
     Alu alu;
     Queue<RobItem> rob;
     Queue<RSLItem> ls;
     Array<RSLItem> rs;
+    Array<Counter, COUNTER> counter;
     RegStatus reg_stat[32];
     Status now;
-    int bits_stat = 0b00;
     int inreg[32], outreg[32];
     bool Issue();
     void Execute();
@@ -80,6 +90,10 @@ class Tomasulo {
     void Commit();
     void Update();
     void ResetRes() { outreg[0] = 0; }
+
+    int prediction = 0;
+    int succ = 0;
+    bool rollback = false;
 
    public:
     void Run();

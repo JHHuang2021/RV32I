@@ -4,15 +4,16 @@
 
 #include "include/parser.h"
 bool Tomasulo::Issue() {
+    if (rollback) return false;
     unsigned code = memory.GetInstr();
     auto instr = Parse(code);
 
     if (rob.Full()) {
-        memory.pc -= 4;
+        memory.nxt_pc =memory.pc;
         return false;
     }
     if (instr.rd != -1 && reg_stat[instr.rd].busy) {
-        memory.pc -= 4;
+        memory.nxt_pc =memory.pc;
         return false;
     }
 
@@ -102,8 +103,11 @@ bool Tomasulo::Issue() {
         reg_stat[instr.rd].busy = true;
     }
     if (instr.op >= 5 && instr.op <= 10) {
+        int c = (memory.pc / 4) % COUNTER;
+        int h = counter[c].his;
+        int bits_stat = counter[c].counter[h];
         if (bits_stat >= 2) {
-            memory.pc += rob[b].offset - 4;
+            memory.nxt_pc = memory.pc + rob[b].offset;
             rob[b].prediction = 1;
         } else {
             rob[b].prediction = 0;
@@ -123,17 +127,17 @@ void Tomasulo::Execute() {
         int b = it.dest;
         switch (it.op) {
             case Operation::JAL:
-                rob[b].value = it.cur_pc;
+                rob[b].value = it.cur_pc + 4;
                 break;
             case Operation::JALR:
-                rob[b].value = it.cur_pc;
+                rob[b].value = it.cur_pc + 4;
                 rob[b].pc = (it.vj + it.imm) & ~1;
                 break;
             case Operation::LUI:
                 rob[b].value = it.imm;
                 break;
             case Operation::AUIPC:
-                rob[b].value = it.imm + it.cur_pc - 4;
+                rob[b].value = it.imm + it.cur_pc;
                 break;
             default:
                 rob[b].value = alu.Work(it.op, it.vj, it.vk, it.imm, it.shamt);
@@ -223,6 +227,7 @@ void Tomasulo::Commit() {
     RobItem &it = rob.GetFront();
     int h = rob.GetFrontInd();
     if (it.code == 0x0ff00513) {
+        std::cout << (double)succ / prediction * 100 << "%" << std::endl;
         std::cout << static_cast<unsigned>(outreg[10] & 255u) << std::endl;
         exit(0);
     }
@@ -230,33 +235,49 @@ void Tomasulo::Commit() {
         int d = it.dest;
         if (it.op >= 5 && it.op <= 10) {
             // branch
+            int c = it.counter;
+            int &h = counter[c].his;
+            int &bits_stat = counter[c].counter[h];
             if (it.value ^ it.prediction) {
+                // fail
                 rob.Clear();
                 rs.Clear();
                 ls.Clear();
                 now.Clear();
+                rollback = true;
                 memset(reg_stat, 0, sizeof(reg_stat));
                 if (it.value)
-                    memory.pc = it.addr + it.offset - 4;
+                    memory.nxt_pc = it.addr + it.offset;
                 else
-                    memory.pc = it.addr;
+                    memory.nxt_pc = it.addr + 4;
 
                 if (it.prediction && bits_stat > 0)
                     bits_stat--;
                 else if (!it.prediction && bits_stat < 3)
                     bits_stat++;
+            } else {
+                // succ
+                if (it.prediction && bits_stat < 0)
+                    bits_stat++;
+                else if (!it.prediction && bits_stat > 0)
+                    bits_stat--;
+                succ++;
             }
+            h = (h << 1 | it.value) & 0b11;
+            prediction++;
+
         } else if (it.op >= 3 && it.op <= 4) {
             outreg[it.dest] = it.value;
             rob.Clear();
             rs.Clear();
             ls.Clear();
             now.Clear();
+            rollback = true;
             memset(reg_stat, 0, sizeof(reg_stat));
             if (it.op == 3)
-                memory.pc = it.addr + it.offset - 4;
+                memory.nxt_pc = it.addr + it.offset;
             else
-                memory.pc = it.pc;
+                memory.nxt_pc = it.pc;
         } else
             outreg[it.dest] = it.value;
         rob.Pop();
@@ -267,6 +288,8 @@ void Tomasulo::Commit() {
 
 void Tomasulo::Update() {
     for (int i = 0; i < 32; i++) inreg[i] = outreg[i];
+    memory.pc = memory.nxt_pc;
+    rollback = false;
 
     for (int j = 0; j < now.ex_size; j++) {
         int b = rs[now.ex[j]].dest;
@@ -345,6 +368,15 @@ void Tomasulo::Run() {
 
         Issue();
         ResetRes();
+
+        // Issue();
+        // ResetRes();
+
+        // Issue();
+        // ResetRes();
+
+        // Issue();
+        // ResetRes();
 
         SLBuffer();
         ResetRes();

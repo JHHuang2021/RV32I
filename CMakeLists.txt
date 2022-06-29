@@ -11,6 +11,7 @@ set(src_dir
 #   src/tomasulo.cpp
   src/parser.cpp
   src/alu.cpp
+  src/cache.cpp
   src/memory.cpp
   src/tomasulo.cpp
   src/main.cpp

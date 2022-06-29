@@ -26,48 +26,49 @@ void Memory::Read() {
 unsigned Memory::GetInstr() {
     unsigned ret = 0;
     for (int i = pc + 3; i >= pc; i--)
-        ret = ret << 8 | static_cast<unsigned>(mem[i]);
-    pc += 4;
+        ret = ret << 8 | static_cast<unsigned>(cache.Read(i));
+    nxt_pc = pc + 4;
     return ret;
 }
 
 int Memory::Load(Operation::Oper op, int addr) {
     unsigned read = 0;
     if (op == Operation::LB) {
-        if (mem[addr] >> 7)
-            return (~0b11111111) | mem[addr];
+        unsigned char tmp = cache.Read(addr);
+        if (tmp >> 7)
+            return (~0b11111111) | tmp;
         else
-            return mem[addr];
+            return tmp;
     } else if (op == Operation::LH) {
-        for (int i = 1; i >= 0; i--) read = (read << 8) | mem[addr + i];
+        for (int i = 1; i >= 0; i--) read = (read << 8) | cache.Read(addr + i);
         if (read >> 15)
             return (~0b1111111111111111) | read;
         else
             return read;
     } else if (op == Operation::LW) {
-        for (int i = 3; i >= 0; i--) read = (read << 8) | mem[addr + i];
+        for (int i = 3; i >= 0; i--) read = (read << 8) | cache.Read(addr + i);
         return read;
     } else if (op == Operation::LBU)
-        return mem[addr];
+        return cache.Read(addr);
     else if (op == Operation::LHU) {
-        for (int i = 1; i >= 0; i--) read = (read << 8) | mem[addr + i];
+        for (int i = 1; i >= 0; i--) read = (read << 8) | cache.Read(addr + i);
         return read;
     }
 }
 
 void Memory::Store(Operation::Oper op, int addr, int value) {
     if (op == Operation::SB)
-        mem[addr] = value;
+        cache.Write(addr, value);
     else if (op == Operation::SH) {
         unsigned tmp = value;
         for (int i = 0; i <= 1; i++) {
-            mem[addr + i] = tmp;
+            cache.Write(addr + i, tmp);
             tmp >>= 8;
         }
     } else if (op == Operation::SW) {
         unsigned tmp = value;
         for (int i = 0; i <= 3; i++) {
-            mem[addr + i] = tmp;
+            cache.Write(addr + i, tmp);
             tmp >>= 8;
         }
     }
